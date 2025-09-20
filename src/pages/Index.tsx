@@ -14,9 +14,14 @@ const Index = () => {
               <BookOpen className="h-8 w-8 text-primary" />
               <span className="text-2xl font-bold">LogBook Pro</span>
             </div>
-            <Button onClick={() => window.location.href = "/login"} variant="outline">
-              Sign In
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => window.location.href = "/student/login"}>
+                Student
+              </Button>
+              <Button onClick={() => window.location.href = "/supervisor/login"} variant="outline">
+                Supervisor
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
@@ -36,14 +41,24 @@ const Index = () => {
             Record activities, track progress, and receive real-time feedback from supervisors.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button 
-              size="lg" 
-              onClick={() => window.location.href = "/login"}
-              className="text-lg px-8 py-4 group"
-            >
-              Start Your Journey
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                size="lg" 
+                onClick={() => window.location.href = "/student/login"}
+                className="text-lg px-8 py-4 group"
+              >
+                Student Login
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => window.location.href = "/supervisor/login"}
+                className="text-lg px-8 py-4"
+              >
+                Supervisor Login
+              </Button>
+            </div>
             <Button variant="outline" size="lg" className="text-lg px-8 py-4">
               Watch Demo
             </Button>
@@ -265,7 +280,7 @@ const Index = () => {
             Access your personalized dashboard based on your role
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 group" onClick={() => window.location.href = "/login"}>
+            <Card className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 group" onClick={() => window.location.href = "/student/login"}>
               <CardHeader className="text-center pb-6">
                 <div className="mx-auto mb-6 p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-2xl w-fit group-hover:scale-110 transition-transform">
                   <GraduationCap className="h-16 w-16 text-blue-600 dark:text-blue-400" />
@@ -301,7 +316,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 group" onClick={() => window.location.href = "/login"}>
+            <Card className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 group" onClick={() => window.location.href = "/supervisor/login"}>
               <CardHeader className="text-center pb-6">
                 <div className="mx-auto mb-6 p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-2xl w-fit group-hover:scale-110 transition-transform">
                   <UserCheck className="h-16 w-16 text-green-600 dark:text-green-400" />
