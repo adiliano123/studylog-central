@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-const SupervisorLogin = () => {
+const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,8 +19,6 @@ const SupervisorLogin = () => {
     setIsLoading(true);
     
     try {
-      console.log("Attempting supervisor login...");
-      
       const response = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: {
@@ -32,71 +30,45 @@ const SupervisorLogin = () => {
         }),
       });
 
-      console.log("Response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("Login successful:", data);
         
-        // Store token and user info
+        if (data.role !== "ADMIN") {
+          toast({
+            title: "Access Denied",
+            description: "You must be an admin to access this area",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify({
           email: data.email,
           role: data.role,
-          supervisorType: data.supervisorType
+          firstName: data.firstName,
+          lastName: data.lastName
         }));
-        
-        console.log("=== LOGIN SUCCESSFUL ===");
-        console.log("Email:", data.email);
-        console.log("Role:", data.role);
-        console.log("SupervisorType:", data.supervisorType);
         
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${data.email}!`,
+          description: `Welcome back, ${data.firstName}!`,
         });
         
-        // ✅ FIXED: Redirect based on supervisor type
-        const userRole = data.role.toUpperCase();
-        if (userRole === "SUPERVISOR" || userRole === "ADMIN") {
-          // Redirect to appropriate dashboard based on supervisor type
-          if (data.supervisorType === "ONSITE") {
-            console.log("Redirecting to: /supervisor/onsite/dashboard");
-            navigate("/supervisor/onsite/dashboard");
-          } else if (data.supervisorType === "UNIVERSITY") {
-            console.log("Redirecting to: /supervisor/university/dashboard");
-            navigate("/supervisor/university/dashboard");
-          } else {
-            // Fallback to general dashboard if type not specified
-            console.log("No supervisorType, redirecting to: /supervisor/dashboard");
-            navigate("/supervisor/dashboard");
-          }
-        } else {
-          console.log("User role:", data.role, "Expected: SUPERVISOR or ADMIN");
-          toast({
-            title: "Access Denied",
-            description: "This portal is for supervisors only. Your role: " + data.role,
-            variant: "destructive",
-          });
-          // Clear invalid login
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-        }
+        navigate("/admin/dashboard");
         
       } else {
         const errorText = await response.text();
-        console.error("Login failed:", errorText);
         toast({
           title: "Login Failed",
-          description: "Invalid credentials or server error",
+          description: errorText || "Invalid credentials",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast({
         title: "Network Error",
-        description: "Cannot connect to server. Please try again.",
+        description: "Cannot connect to the server",
         variant: "destructive",
       });
     } finally {
@@ -109,20 +81,20 @@ const SupervisorLogin = () => {
       <div className="w-full max-w-md space-y-4">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Home
+          Back to Homepage
         </Link>
         
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <UserCheck className="h-6 w-6 text-primary" />
+              <Shield className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-bold">Supervisor Login</CardTitle>
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription>
-              Sign in to access the supervisor dashboard
+              Sign in to manage the logbook system
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -132,7 +104,7 @@ const SupervisorLogin = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="supervisor@university.edu"
+                  placeholder="admin@university.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -153,21 +125,15 @@ const SupervisorLogin = () => {
               </Button>
               
               <div className="text-center text-sm">
-                <Link to="/supervisor/forgot-password" className="text-primary hover:underline">
+                <Link to="/admin/forgot-password" className="text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
               
               <div className="text-center text-sm text-muted-foreground">
-                Don't have an account?{" "}
-                <Link to="/supervisor/register" className="text-primary hover:underline">
+                Don't have an admin account?{" "}
+                <Link to="/admin/register" className="text-primary hover:underline">
                   Register here
-                </Link>
-              </div>
-              <div className="text-center text-sm text-muted-foreground">
-                Student?{" "}
-                <Link to="/student/login" className="text-primary hover:underline">
-                  Student Login
                 </Link>
               </div>
             </form>
@@ -178,4 +144,4 @@ const SupervisorLogin = () => {
   );
 };
 
-export default SupervisorLogin;
+export default AdminLogin;

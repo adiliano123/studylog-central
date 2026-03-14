@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+
+interface Supervisor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  department: string;
+  supervisorType: string;
+}
 
 const StudentRegister = () => {
   const [formData, setFormData] = useState({
@@ -16,11 +26,58 @@ const StudentRegister = () => {
     password: "",
     confirmPassword: "",
     course: "",
-    year: ""
+    year: "",
+    supervisorId: ""
   });
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch supervisors on component mount
+  useEffect(() => {
+    fetchSupervisors();
+  }, []);
+
+  const fetchSupervisors = async () => {
+    try {
+      console.log("Fetching supervisors from API...");
+      const response = await fetch("http://localhost:8080/api/admin/supervisors");
+      console.log("Response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Supervisors fetched:", data);
+        
+        // Filter to only show UNIVERSITY supervisors (exclude ONSITE supervisors)
+        const universitySupervisors = data.filter((supervisor: Supervisor) => 
+          supervisor.supervisorType === 'UNIVERSITY'
+        );
+        
+        console.log("University supervisors:", universitySupervisors.length);
+        console.log("Onsite supervisors filtered out:", data.length - universitySupervisors.length);
+        setSupervisors(universitySupervisors);
+      } else {
+        console.error("Failed to fetch supervisors, status:", response.status);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        
+        // Show error to user
+        toast({
+          title: "Warning",
+          description: "Could not load supervisors list. You can still register without selecting a supervisor.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching supervisors:", error);
+      toast({
+        title: "Warning",
+        description: "Could not connect to server to load supervisors. You can still register.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -68,7 +125,8 @@ const StudentRegister = () => {
           email: formData.email,
           password: formData.password,
           course: formData.course,
-          year: parseInt(formData.year) || 1
+          year: parseInt(formData.year) || 1,
+          supervisorId: formData.supervisorId ? parseInt(formData.supervisorId) : null
         }),
       });
 
@@ -215,6 +273,36 @@ const StudentRegister = () => {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supervisor">Select University Supervisor (Optional)</Label>
+                <Select
+                  value={formData.supervisorId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, supervisorId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a university supervisor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supervisors.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No university supervisors available
+                      </SelectItem>
+                    ) : (
+                      supervisors.map((supervisor) => (
+                        <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
+                          {supervisor.firstName} {supervisor.lastName} - {supervisor.department || 'No Department'}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {supervisors.length > 0 
+                    ? `${supervisors.length} university supervisor(s) available. Onsite supervisors are assigned by your placement company.`
+                    : "Loading university supervisors... You can still register without selecting one."}
+                </p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

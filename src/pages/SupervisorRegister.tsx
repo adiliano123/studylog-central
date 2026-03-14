@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, ArrowLeft } from "lucide-react";
+import { UserCheck, ArrowLeft, Building2, GraduationCap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 const SupervisorRegister = () => {
@@ -16,16 +16,24 @@ const SupervisorRegister = () => {
     password: "",
     confirmPassword: "",
     department: "",
-    position: ""
+    position: "",
+    supervisorType: "ONSITE" as "ONSITE" | "UNIVERSITY"
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleTypeSelect = (type: "ONSITE" | "UNIVERSITY") => {
+    setFormData(prev => ({
+      ...prev,
+      supervisorType: type
     }));
   };
 
@@ -68,7 +76,8 @@ const SupervisorRegister = () => {
           email: formData.email,
           password: formData.password,
           department: formData.department,
-          position: formData.position
+          position: formData.position,
+          supervisorType: formData.supervisorType
         }),
       });
 
@@ -138,6 +147,56 @@ const SupervisorRegister = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
+              {/* Supervisor Type Selection */}
+              <div className="space-y-3">
+                <Label>Supervisor Type *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleTypeSelect("ONSITE")}
+                    className={`p-4 border-2 rounded-lg transition-all ${
+                      formData.supervisorType === "ONSITE"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Building2 className={`h-8 w-8 ${
+                        formData.supervisorType === "ONSITE" ? "text-primary" : "text-muted-foreground"
+                      }`} />
+                      <div className="text-center">
+                        <div className="font-semibold">Onsite Supervisor</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Company/workplace supervisor for daily verification
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleTypeSelect("UNIVERSITY")}
+                    className={`p-4 border-2 rounded-lg transition-all ${
+                      formData.supervisorType === "UNIVERSITY"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <GraduationCap className={`h-8 w-8 ${
+                        formData.supervisorType === "UNIVERSITY" ? "text-primary" : "text-muted-foreground"
+                      }`} />
+                      <div className="text-center">
+                        <div className="font-semibold">University Supervisor</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Academic supervisor for final approval
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>
@@ -192,14 +251,34 @@ const SupervisorRegister = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department">Department *</Label>
-                  <Input
+                  <select
                     id="department"
                     name="department"
-                    placeholder="e.g., Computer Science"
                     value={formData.department}
                     onChange={handleInputChange}
                     required
-                  />
+                    aria-label="Department selection"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select Department</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Human Resources">Human Resources</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Customer Service">Customer Service</option>
+                    <option value="Research & Development">Research & Development</option>
+                    <option value="Quality Assurance">Quality Assurance</option>
+                    <option value="Business Administration">Business Administration</option>
+                    <option value="Education">Education</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Biology">Biology</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="position">Position *</Label>
@@ -242,14 +321,76 @@ const SupervisorRegister = () => {
               </div>
               
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? "Creating Account..." : `Create ${formData.supervisorType === "ONSITE" ? "Onsite" : "University"} Supervisor Account`}
               </Button>
+
+              {/* Sample Data Buttons */}
+              <div className="pt-4 border-t">
+                <Label className="text-xs text-muted-foreground mb-2 block">Quick Fill Sample Data:</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({
+                        firstName: "John",
+                        lastName: "Smith",
+                        staffId: "ONS001",
+                        email: "john.smith@techcorp.com",
+                        password: "Secure123!",
+                        confirmPassword: "Secure123!",
+                        department: "Engineering",
+                        position: "Senior Engineer",
+                        supervisorType: "ONSITE"
+                      });
+                    }}
+                  >
+                    <Building2 className="h-3 w-3 mr-1" />
+                    Onsite Sample
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({
+                        firstName: "Dr. Jane",
+                        lastName: "Doe",
+                        staffId: "UNI001",
+                        email: "jane.doe@university.edu",
+                        password: "Academic123!",
+                        confirmPassword: "Academic123!",
+                        department: "Computer Science",
+                        position: "Professor",
+                        supervisorType: "UNIVERSITY"
+                      });
+                    }}
+                  >
+                    <GraduationCap className="h-3 w-3 mr-1" />
+                    University Sample
+                  </Button>
+                </div>
+              </div>
               
               <div className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link to="/supervisor/login" className="text-primary hover:underline">
                   Sign in here
                 </Link>
+              </div>
+
+              {/* Info about supervisor types */}
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                <p className="font-semibold mb-1">Supervisor Types:</p>
+                <p className="mb-1">
+                  <Building2 className="h-3 w-3 inline mr-1" />
+                  <strong>Onsite:</strong> Daily verification, check-in tracking, location verification, activity validation
+                </p>
+                <p>
+                  <GraduationCap className="h-3 w-3 inline mr-1" />
+                  <strong>University:</strong> Final academic approval after onsite supervisor verification
+                </p>
               </div>
             </form>
           </CardContent>

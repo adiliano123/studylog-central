@@ -144,6 +144,13 @@ const StudentLogin = () => {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
+              
+              <div className="text-center text-sm">
+                <Link to="/student/forgot-password" className="text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+              
               <div className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link to="/student/register" className="text-primary hover:underline">

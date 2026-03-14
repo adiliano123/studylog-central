@@ -103,6 +103,14 @@ const Index = () => {
                   For Supervisors
                 </Button>
               </Link>
+              <Link to="/admin/login">
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-700 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                >
+                  Admin
+                </Button>
+              </Link>
               <Link to="/student/register">
                 <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
                   Get Started Free

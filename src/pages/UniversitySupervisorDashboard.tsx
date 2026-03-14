@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, MessageSquare, User, LogOut, Clock, BookOpen, Eye, Search, UserCheck, MapPin, Activity } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, User, LogOut, Clock, BookOpen, Eye, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface LogbookEntry {
@@ -17,45 +16,21 @@ interface LogbookEntry {
   hoursWorked: number;
   activities: string;
   weekNumber: number;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reviewed: boolean;
+  status: string;
+  onsiteApproved: boolean;
+  universityApproved: boolean;
   student: {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
-    studentId?: string;
   };
   approvals?: Array<{
     id: number;
-    status: "PENDING" | "APPROVED" | "REJECTED";
+    status: string;
     comments: string;
-    supervisor: {
-      id: number;
-      firstName: string;
-      lastName: string;
-    };
+    supervisorType?: string;
   }>;
-}
-
-interface StudentInfo {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  studentId: string;
-  course?: string;
-  year?: number;
-}
-
-interface CheckInInfo {
-  id: number;
-  checkInTime: string;
-  checkOutTime?: string;
-  locationName?: string;
-  locationLatitude?: number;
-  locationLongitude?: number;
-  notes?: string;
 }
 
 interface ApprovalRequest {
@@ -63,15 +38,9 @@ interface ApprovalRequest {
   comments: string;
 }
 
-const SupervisorDashboard = () => {
+const UniversitySupervisorDashboard = () => {
   const [entries, setEntries] = useState<LogbookEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [studentSearchId, setStudentSearchId] = useState("");
-  const [searchedStudent, setSearchedStudent] = useState<StudentInfo | null>(null);
-  const [studentLogbooks, setStudentLogbooks] = useState<LogbookEntry[]>([]);
-  const [studentCheckIns, setStudentCheckIns] = useState<CheckInInfo[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showStudentView, setShowStudentView] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -95,6 +64,22 @@ const SupervisorDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("=== UNIVERSITY SUPERVISOR: Fetched logbooks ===");
+        console.log("Total entries:", data.length);
+        console.log("All entries:", data);
+        
+        // Log each entry's approval status
+        data.forEach((entry: LogbookEntry, index: number) => {
+          console.log(`Entry ${index + 1}:`, {
+            id: entry.id,
+            date: entry.date,
+            status: entry.status,
+            onsiteApproved: entry.onsiteApproved,
+            universityApproved: entry.universityApproved,
+            approvals: entry.approvals
+          });
+        });
+        
         setEntries(data);
       } else if (response.status === 403) {
         toast({
@@ -103,12 +88,6 @@ const SupervisorDashboard = () => {
           variant: "destructive",
         });
         navigate("/supervisor/login");
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load logbook entries",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       toast({
@@ -121,106 +100,24 @@ const SupervisorDashboard = () => {
     }
   };
 
-  const searchStudent = async () => {
-    if (!studentSearchId.trim()) {
-      toast({
-        title: "Student ID Required",
-        description: "Please enter a student ID to search",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    setIsSearching(true);
-
-    try {
-      // Search for student by student ID
-      const studentResponse = await fetch(`http://localhost:8080/api/students/search?studentId=${studentSearchId}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-
-      if (studentResponse.ok) {
-        const student = await studentResponse.json();
-        setSearchedStudent(student);
-        
-        // Fetch student's logbooks
-        const logbooksResponse = await fetch(`http://localhost:8080/api/logbooks/student/${student.id}`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (logbooksResponse.ok) {
-          const logbooks = await logbooksResponse.json();
-          setStudentLogbooks(logbooks);
-        }
-
-        // Fetch student's check-ins
-        const checkInsResponse = await fetch(`http://localhost:8080/api/checkin/student/${student.id}`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (checkInsResponse.ok) {
-          const checkIns = await checkInsResponse.json();
-          setStudentCheckIns(checkIns);
-        }
-
-        setShowStudentView(true);
-        
-        toast({
-          title: "Student Found",
-          description: `Loaded information for ${student.firstName} ${student.lastName}`,
-        });
-      } else if (studentResponse.status === 404) {
-        toast({
-          title: "Student Not Found",
-          description: "No student found with this ID",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Search Failed",
-          description: "Failed to search for student",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Network Error",
-        description: "Unable to connect to server",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const clearStudentSearch = () => {
-    setStudentSearchId("");
-    setSearchedStudent(null);
-    setStudentLogbooks([]);
-    setStudentCheckIns([]);
-    setShowStudentView(false);
-  };
-
   const handleApprove = async (logbookId: number, comments: string) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
-      const approvalRequest: ApprovalRequest = {
+      console.log("=== UNIVERSITY SUPERVISOR: Approving logbook ===");
+      console.log("Logbook ID:", logbookId);
+      console.log("Comments:", comments);
+
+      const approvalRequest = {
         status: "APPROVED",
-        comments: comments
+        comments: comments,
+        academicAssessment: comments, // Add academic assessment
+        learningOutcomesMet: true
       };
 
-      const response = await fetch(`http://localhost:8080/api/approvals/create/${logbookId}`, {
+      // NEW: Use university approval endpoint
+      const response = await fetch(`http://localhost:8080/api/approvals/university/${logbookId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -229,14 +126,19 @@ const SupervisorDashboard = () => {
         body: JSON.stringify(approvalRequest),
       });
 
+      console.log("Response status:", response.status);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log("Approval successful:", data);
         toast({
           title: "Entry Approved",
-          description: "The logbook entry has been approved successfully.",
+          description: "The logbook entry has been approved for academic credit.",
         });
         fetchLogbooks();
       } else {
         const errorText = await response.text();
+        console.error("Approval failed:", errorText);
         toast({
           title: "Approval Failed",
           description: errorText || "Failed to approve entry",
@@ -244,6 +146,7 @@ const SupervisorDashboard = () => {
         });
       }
     } catch (error) {
+      console.error("Network error:", error);
       toast({
         title: "Network Error",
         description: "Unable to connect to server",
@@ -257,12 +160,18 @@ const SupervisorDashboard = () => {
     if (!token) return;
 
     try {
-      const approvalRequest: ApprovalRequest = {
+      console.log("=== UNIVERSITY SUPERVISOR: Rejecting logbook ===");
+      console.log("Logbook ID:", logbookId);
+
+      const approvalRequest = {
         status: "REJECTED",
-        comments: comments
+        comments: comments,
+        academicAssessment: comments,
+        learningOutcomesMet: false
       };
 
-      const response = await fetch(`http://localhost:8080/api/approvals/create/${logbookId}`, {
+      // NEW: Use university approval endpoint
+      const response = await fetch(`http://localhost:8080/api/approvals/university/${logbookId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -306,8 +215,10 @@ const SupervisorDashboard = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "APPROVED":
+      case "FULLY_APPROVED":
         return "bg-green-100 text-green-800 border-green-200";
+      case "ONSITE_APPROVED":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "REJECTED":
         return "bg-red-100 text-red-800 border-red-200";
       default:
@@ -317,28 +228,23 @@ const SupervisorDashboard = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "APPROVED":
-        return "Approved";
+      case "FULLY_APPROVED":
+        return "Fully Approved";
+      case "ONSITE_APPROVED":
+        return "Onsite Approved";
       case "REJECTED":
         return "Rejected";
       default:
-        return "Pending Review";
+        return "Pending";
     }
   };
 
-  // NEW: Check if entry has been reviewed by current supervisor
-  const hasBeenReviewedByMe = (entry: LogbookEntry) => {
-    return entry.reviewed || (entry.approvals && entry.approvals.length > 0);
-  };
-
-  const pendingEntries = entries.filter(entry => !hasBeenReviewedByMe(entry));
-  const reviewedEntries = entries.filter(entry => hasBeenReviewedByMe(entry));
-
   const ReviewDialog = ({ entry }: { entry: LogbookEntry }) => {
     const [localComment, setLocalComment] = useState("");
+    const [open, setOpen] = useState(false);
 
     return (
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <CheckCircle className="h-4 w-4 mr-2" />
@@ -347,12 +253,11 @@ const SupervisorDashboard = () => {
         </DialogTrigger>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Review Logbook Entry</DialogTitle>
+            <DialogTitle>Academic Review & Approval</DialogTitle>
             <DialogDescription>
               Student: {entry.student.firstName} {entry.student.lastName} • 
               Date: {new Date(entry.date).toLocaleDateString()} • 
-              Hours: {entry.hoursWorked} • 
-              Week: {entry.weekNumber}
+              Hours: {entry.hoursWorked}
             </DialogDescription>
           </DialogHeader>
           
@@ -363,15 +268,29 @@ const SupervisorDashboard = () => {
                 {entry.activities}
               </p>
             </div>
+
+            {/* Show onsite supervisor feedback if available */}
+            {entry.approvals && entry.approvals.filter(a => a.supervisorType === "ONSITE").map((approval) => (
+              <div key={approval.id} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">Onsite Supervisor Feedback</span>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {approval.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-blue-900">{approval.comments}</p>
+              </div>
+            ))}
             
             <div>
-              <Label htmlFor="comment">Your Feedback</Label>
+              <Label htmlFor="comment">Your Academic Feedback</Label>
               <Textarea
                 id="comment"
-                placeholder="Add your comments and feedback..."
+                placeholder="Provide academic assessment, learning outcomes evaluation, and recommendations..."
                 value={localComment}
                 onChange={(e) => setLocalComment(e.target.value)}
-                rows={3}
+                rows={4}
               />
             </div>
           </div>
@@ -382,6 +301,7 @@ const SupervisorDashboard = () => {
               onClick={() => {
                 handleReject(entry.id, localComment);
                 setLocalComment("");
+                setOpen(false);
               }}
             >
               <XCircle className="h-4 w-4 mr-2" />
@@ -391,10 +311,11 @@ const SupervisorDashboard = () => {
               onClick={() => {
                 handleApprove(entry.id, localComment);
                 setLocalComment("");
+                setOpen(false);
               }}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
+              Approve for Academic Credit
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -430,10 +351,6 @@ const SupervisorDashboard = () => {
                 <p className="text-sm">{entry.hoursWorked} hours</p>
               </div>
               <div>
-                <Label className="text-sm font-medium">Week Number</Label>
-                <p className="text-sm">{entry.weekNumber || 'Not specified'}</p>
-              </div>
-              <div>
                 <Label className="text-sm font-medium">Status</Label>
                 <Badge variant="secondary" className={getStatusColor(entry.status)}>
                   {getStatusText(entry.status)}
@@ -452,9 +369,11 @@ const SupervisorDashboard = () => {
               <div key={approval.id} className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Your Feedback</span>
+                  <span className="text-sm font-medium">
+                    {approval.supervisorType === "ONSITE" ? "Onsite Supervisor" : "University Supervisor"} Feedback
+                  </span>
                   <Badge variant="secondary" className={getStatusColor(approval.status)}>
-                    {getStatusText(approval.status)}
+                    {approval.status}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">{approval.comments}</p>
@@ -466,12 +385,24 @@ const SupervisorDashboard = () => {
     );
   };
 
+  // Filter entries: University supervisor sees entries approved by onsite but not yet by university
+  const pendingEntries = entries.filter(entry => 
+    entry.onsiteApproved && !entry.universityApproved
+  );
+  const reviewedEntries = entries.filter(entry => entry.universityApproved);
+  
+  console.log("=== UNIVERSITY SUPERVISOR: Filtering ===");
+  console.log("Total entries:", entries.length);
+  console.log("Pending entries (onsiteApproved && !universityApproved):", pendingEntries.length);
+  console.log("Pending entries:", pendingEntries);
+  console.log("Reviewed entries:", reviewedEntries.length);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading supervisor dashboard...</p>
+          <p className="mt-4 text-muted-foreground">Loading university supervisor dashboard...</p>
         </div>
       </div>
     );
@@ -482,10 +413,10 @@ const SupervisorDashboard = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <BookOpen className="h-8 w-8 text-primary" />
+            <GraduationCap className="h-8 w-8 text-primary" />
             <div>
-              <h1 className="text-2xl font-bold">Supervisor Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage student logbook approvals</p>
+              <h1 className="text-2xl font-bold">University Supervisor Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Academic assessment & final approval</p>
             </div>
           </div>
           <Button variant="outline" onClick={handleLogout}>
@@ -496,191 +427,21 @@ const SupervisorDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Student Search Section - For Onsite Supervisors */}
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-primary" />
-              Find Student on Site
-            </CardTitle>
-            <CardDescription>
-              Enter student ID to view their information, check-in status, and logbook entries
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Enter Student ID (e.g., STU001)"
-                  value={studentSearchId}
-                  onChange={(e) => setStudentSearchId(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchStudent()}
-                />
-              </div>
-              <Button onClick={searchStudent} disabled={isSearching}>
-                {isSearching ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </>
-                )}
-              </Button>
-              {showStudentView && (
-                <Button variant="outline" onClick={clearStudentSearch}>
-                  Clear
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Student Information View */}
-        {showStudentView && searchedStudent && (
-          <Card className="border-primary">
-            <CardHeader className="bg-primary/5">
-              <CardTitle className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-primary" />
-                Student Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              {/* Student Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                  <p className="text-lg font-semibold">{searchedStudent.firstName} {searchedStudent.lastName}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Student ID</Label>
-                  <p className="text-lg font-semibold">{searchedStudent.studentId}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="text-lg font-semibold">{searchedStudent.email}</p>
-                </div>
-                {searchedStudent.course && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Course</Label>
-                    <p className="text-lg font-semibold">{searchedStudent.course}</p>
-                  </div>
-                )}
-                {searchedStudent.year && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Year</Label>
-                    <p className="text-lg font-semibold">Year {searchedStudent.year}</p>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Check-In Status */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  Recent Check-Ins
-                </h3>
-                {studentCheckIns.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No check-in records found</p>
-                ) : (
-                  <div className="space-y-2">
-                    {studentCheckIns.slice(0, 5).map((checkIn) => (
-                      <div key={checkIn.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {checkIn.locationName || 'Location not specified'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Check-in: {new Date(checkIn.checkInTime).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          {checkIn.checkOutTime ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              Checked Out
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              Currently On Site
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Student's Logbook Entries */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Logbook Entries ({studentLogbooks.length})
-                </h3>
-                {studentLogbooks.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No logbook entries found</p>
-                ) : (
-                  <div className="space-y-3">
-                    {studentLogbooks.map((entry) => (
-                      <div key={entry.id} className="p-4 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium">
-                              {new Date(entry.date).toLocaleDateString()}
-                            </span>
-                            <Badge variant="secondary" className={getStatusColor(entry.status)}>
-                              {getStatusText(entry.status)}
-                            </Badge>
-                            {entry.weekNumber && (
-                              <Badge variant="outline" className="text-xs">
-                                Week {entry.weekNumber}
-                              </Badge>
-                            )}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {entry.hoursWorked} hours
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{entry.activities}</p>
-                        {!hasBeenReviewedByMe(entry) ? (
-                          <ReviewDialog entry={entry} />
-                        ) : (
-                          <ViewDialog entry={entry} />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pending Reviews */}
+        {/* Pending Academic Reviews */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-yellow-600" />
-              Pending Reviews ({pendingEntries.length})
+              Pending Academic Review ({pendingEntries.length})
             </CardTitle>
             <CardDescription>
-              Logbook entries awaiting your review and approval
+              Entries verified by onsite supervisor, awaiting your academic approval
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {pendingEntries.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No pending entries to review
+                No entries pending academic review
               </p>
             ) : (
               pendingEntries.map((entry, index) => (
@@ -700,11 +461,6 @@ const SupervisorDashboard = () => {
                         <Badge variant="secondary" className={getStatusColor(entry.status)}>
                           {getStatusText(entry.status)}
                         </Badge>
-                        {entry.weekNumber && (
-                          <Badge variant="outline" className="text-xs">
-                            Week {entry.weekNumber}
-                          </Badge>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
@@ -723,12 +479,12 @@ const SupervisorDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Previously Reviewed */}
+        {/* Reviewed Entries */}
         <Card>
           <CardHeader>
-            <CardTitle>Reviewed Entries ({reviewedEntries.length})</CardTitle>
+            <CardTitle>Academically Approved Entries ({reviewedEntries.length})</CardTitle>
             <CardDescription>
-              Logbook entries you have already reviewed
+              Entries you have reviewed and approved for academic credit
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -754,11 +510,6 @@ const SupervisorDashboard = () => {
                         <Badge variant="secondary" className={getStatusColor(entry.status)}>
                           {getStatusText(entry.status)}
                         </Badge>
-                        {entry.weekNumber && (
-                          <Badge variant="outline" className="text-xs">
-                            Week {entry.weekNumber}
-                          </Badge>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
@@ -770,13 +521,13 @@ const SupervisorDashboard = () => {
                     
                     <p className="text-sm text-muted-foreground">{entry.activities}</p>
                     
-                    {entry.approvals && entry.approvals.map((approval) => (
+                    {entry.approvals && entry.approvals.filter(a => a.supervisorType === "UNIVERSITY").map((approval) => (
                       <div key={approval.id} className="bg-muted p-3 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">Your Feedback</span>
                           <Badge variant="secondary" className={getStatusColor(approval.status)}>
-                            {getStatusText(approval.status)}
+                            {approval.status}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{approval.comments}</p>
@@ -794,4 +545,4 @@ const SupervisorDashboard = () => {
   );
 };
 
-export default SupervisorDashboard;
+export default UniversitySupervisorDashboard;
