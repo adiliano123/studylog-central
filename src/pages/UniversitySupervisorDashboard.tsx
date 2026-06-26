@@ -157,6 +157,7 @@ const UniversitySupervisorDashboard = () => {
     loadAll();
     // Fetch latest profile picture URL from backend (in case localStorage is stale)
     fetchMyProfilePicture(token ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const fetchMyProfilePicture = async (token: string) => {
@@ -184,6 +185,7 @@ const UniversitySupervisorDashboard = () => {
     setIsLoading(true);
     await Promise.allSettled([fetchStudents(), fetchLogbooks()]);
     setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchStudents = async () => {
@@ -523,7 +525,7 @@ const UniversitySupervisorDashboard = () => {
                         <AlertCircle className="h-5 w-5 text-yellow-600" />
                         <div>
                           <p className="font-semibold text-yellow-900">
-                            {pendingLogbooks.length} entr{pendingLogbooks.length === 1 ? "y" : "ies"} awaiting your academic review
+                            {pendingLogbooks.length} {pendingLogbooks.length === 1 ? "entry" : "entries"} awaiting your academic review
                           </p>
                           <p className="text-sm text-yellow-700">These have been verified by onsite supervisors and need your approval.</p>
                         </div>
@@ -977,7 +979,7 @@ const UniversitySupervisorDashboard = () => {
                       { label: "Full Name", value: `${supervisorProfile.firstName} ${supervisorProfile.lastName}` },
                       { label: "Role", value: "University Supervisor" },
                       { label: "Assigned Students", value: `${students.length} student${students.length !== 1 ? "s" : ""}` },
-                      { label: "Pending Reviews", value: `${pendingLogbooks.length} entr${pendingLogbooks.length !== 1 ? "ies" : "y"}` },
+                      { label: "Pending Reviews", value: `${pendingLogbooks.length} ${pendingLogbooks.length !== 1 ? "entries" : "entry"}` },
                       { label: "Approved Logbooks", value: `${approvedLogbooks.length}` },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between items-center py-2 border-b last:border-0">
