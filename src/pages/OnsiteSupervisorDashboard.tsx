@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, MessageSquare, User, LogOut, Clock, BookOpen, Search, UserCheck, MapPin, Activity, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import UserAvatar from "@/components/UserAvatar";
+import ProfilePictureUploadModal from "@/components/ProfilePictureUploadModal";
 
 interface LogbookEntry {
   id: number;
@@ -88,12 +90,22 @@ const OnsiteSupervisorDashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showStudentView, setShowStudentView] = useState(false);
   const [newEntriesCount, setNewEntriesCount] = useState(0);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [supervisorProfile, setSupervisorProfile] = useState<{ firstName: string; lastName: string; profileImageUrl?: string | null }>({ firstName: "", lastName: "" });
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Load supervisor profile from localStorage for avatar display
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        setSupervisorProfile({ firstName: u.firstName ?? "", lastName: u.lastName ?? "", profileImageUrl: u.profileImageUrl ?? null });
+      } catch { /* ignore */ }
+    }
     // Don't fetch all logbooks on load - only fetch checked-in students
-    setIsLoading(false); // Set loading to false immediately
+    setIsLoading(false);
     fetchCurrentlyCheckedIn();
     
     // Check for checked-in students every 30 seconds
@@ -132,7 +144,8 @@ const OnsiteSupervisorDashboard = () => {
         setNewEntriesCount(newEntries.length);
         
         // Show notification if there are new entries
-        if (newEntries.length > 0 && entries.length > 0 && newEntries.length > pendingEntries.length) {
+        const currentPendingCount = data.filter((entry: LogbookEntry) => !entry.onsiteApproved).length;
+        if (newEntries.length > 0 && entries.length > 0 && newEntries.length > currentPendingCount) {
           toast({
             title: "New Logbook Entries",
             description: `${newEntries.length} new ${newEntries.length === 1 ? 'entry' : 'entries'} awaiting your review`,
@@ -210,8 +223,10 @@ const OnsiteSupervisorDashboard = () => {
           }
         });
 
+        let loadedLogbooksCount = 0;
         if (logbooksResponse.ok) {
           const logbooks = await logbooksResponse.json();
+          loadedLogbooksCount = logbooks.length;
           setStudentLogbooks(logbooks);
           // Also update the main entries state to show this student's entries
           setEntries(logbooks);
@@ -233,7 +248,7 @@ const OnsiteSupervisorDashboard = () => {
         
         toast({
           title: "Student Found",
-          description: `Loaded ${logbooks.length} logbook entries for ${student.firstName} ${student.lastName}`,
+          description: `Loaded ${loadedLogbooksCount} logbook entries for ${student.firstName} ${student.lastName}`,
         });
       } else if (studentResponse.status === 404) {
         toast({
@@ -868,14 +883,90 @@ const OnsiteSupervisorDashboard = () => {
               <p className="text-sm text-muted-foreground">Daily verification & presence monitoring</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Profile avatar button — plain img, no Avatar component */}
+            <button
+              type="button"
+              aria-label="Profile picture"
+              onClick={() => setAvatarModalOpen(true)}
+              className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-primary/40 transition-all flex-shrink-0 focus:outline-none"
+            >
+              {supervisorProfile.profileImageUrl ? (
+                <img
+                  key={supervisorProfile.profileImageUrl}
+                  src={`http://localhost:8080${supervisorProfile.profileImageUrl}?v=${encodeURIComponent(supervisorProfile.profileImageUrl)}`}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-orange-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {(supervisorProfile.firstName.charAt(0) + supervisorProfile.lastName.charAt(0)).toUpperCase() || "?"}
+                  </span>
+                </div>
+              )}
+            </button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* ── Profile Card ─────────────────────────────────────────── */}
+        <Card className="border-orange-200 bg-orange-50/30">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-4">
+              {/* Photo */}
+              <button
+                type="button"
+                aria-label="Change profile picture"
+                onClick={() => setAvatarModalOpen(true)}
+                className="relative flex-shrink-0 group focus:outline-none"
+              >
+                {supervisorProfile.profileImageUrl ? (
+                  <img
+                    key={supervisorProfile.profileImageUrl}
+                    src={`http://localhost:8080${supervisorProfile.profileImageUrl}?v=${encodeURIComponent(supervisorProfile.profileImageUrl)}`}
+                    alt="Profile"
+                    className="h-16 w-16 rounded-full object-cover ring-4 ring-orange-200 group-hover:ring-orange-400 transition-all"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-orange-500 flex items-center justify-center ring-4 ring-orange-200 group-hover:ring-orange-400 transition-all">
+                    <span className="text-white text-lg font-bold">
+                      {(supervisorProfile.firstName.charAt(0) + supervisorProfile.lastName.charAt(0)).toUpperCase() || "OS"}
+                    </span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 right-0 h-5 w-5 bg-orange-500 rounded-full flex items-center justify-center shadow">
+                  <Activity className="h-2.5 w-2.5 text-white" />
+                </div>
+              </button>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight truncate">
+                  {supervisorProfile.firstName} {supervisorProfile.lastName}
+                </p>
+                <Badge className="bg-orange-100 text-orange-800 text-xs mt-0.5">Onsite Supervisor</Badge>
+              </div>
+
+              {/* Upload button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAvatarModalOpen(true)}
+                className="flex-shrink-0 gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50"
+              >
+                <Search className="h-3.5 w-3.5" />
+                {supervisorProfile.profileImageUrl ? "Change Photo" : "Upload Photo"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* New Entries Notification */}
         {newEntriesCount > 0 && (
           <Card className="border-yellow-200 bg-yellow-50">
@@ -1192,6 +1283,16 @@ const OnsiteSupervisorDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Profile picture modal */}
+      <ProfilePictureUploadModal
+        open={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        currentImageUrl={supervisorProfile.profileImageUrl}
+        firstName={supervisorProfile.firstName}
+        lastName={supervisorProfile.lastName}
+        onSuccess={(newUrl) => setSupervisorProfile(p => ({ ...p, profileImageUrl: newUrl }))}
+      />
     </div>
   );
 };

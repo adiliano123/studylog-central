@@ -115,7 +115,11 @@ export default {
           "50%": {
             opacity: "0.8"
           }
-        }
+        },
+        "blink": {
+          "0%, 100%": { opacity: "1" },
+          "50%":       { opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -124,6 +128,7 @@ export default {
         "slide-up": "slide-up 0.8s ease-out",
         "float": "float 3s ease-in-out infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "blink": "blink 0.7s step-end infinite",
       },
     },
   },

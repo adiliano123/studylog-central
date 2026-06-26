@@ -44,7 +44,7 @@ function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/register" element={<AdminRegister />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/enhanced" element={<EnhancedAdminDashboard />} />
+          <Route path="/admin/enhanced" element={<AdminDashboard />} />
           <Route path="/admin/test" element={<SimpleAdminTest />} />
           <Route path="/admin/minimal" element={<MinimalAdminDashboard />} />
           <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />

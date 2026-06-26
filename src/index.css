@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Leaflet z-index fix ──────────────────────────────────────────────────────
+   Leaflet's tile layer and controls sit at z-index 400-1000 by default.
+   Radix Dialog portals render at z-index 50 (Tailwind default) which puts them
+   BEHIND the map. Force Leaflet below the dialog stack.                      */
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane,
+.leaflet-control {
+  z-index: 10 !important;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 11 !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

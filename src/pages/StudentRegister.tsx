@@ -41,36 +41,20 @@ const StudentRegister = () => {
 
   const fetchSupervisors = async () => {
     try {
-      console.log("Fetching supervisors from API...");
-      const response = await fetch("http://localhost:8080/api/admin/supervisors");
-      console.log("Response status:", response.status);
-      
+      // Use the dedicated university-only endpoint — onsite supervisors never appear here
+      const response = await fetch("http://localhost:8080/api/admin/supervisors/university");
+
       if (response.ok) {
         const data = await response.json();
-        console.log("Supervisors fetched:", data);
-        
-        // Filter to only show UNIVERSITY supervisors (exclude ONSITE supervisors)
-        const universitySupervisors = data.filter((supervisor: Supervisor) => 
-          supervisor.supervisorType === 'UNIVERSITY'
-        );
-        
-        console.log("University supervisors:", universitySupervisors.length);
-        console.log("Onsite supervisors filtered out:", data.length - universitySupervisors.length);
-        setSupervisors(universitySupervisors);
+        setSupervisors(data);
       } else {
-        console.error("Failed to fetch supervisors, status:", response.status);
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        
-        // Show error to user
         toast({
           title: "Warning",
-          description: "Could not load supervisors list. You can still register without selecting a supervisor.",
+          description: "Could not load supervisors list. You can still register without selecting one.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error fetching supervisors:", error);
       toast({
         title: "Warning",
         description: "Could not connect to server to load supervisors. You can still register.",
